@@ -237,6 +237,33 @@ describe("cloudflare.addRecord", () => {
       "token_invalid",
     ],
     ["a 403 on zones", () => failure(403, [9109]), "zone_read_missing"],
+    // Measured against a real account on 2026-10-29: both answer 403 with code 9109.
+    [
+      "a wrong token (403, 9109, 'Invalid access token')",
+      () =>
+        new Response(
+          JSON.stringify({
+            success: false,
+            errors: [{ code: 9109, message: "Invalid access token" }],
+            result: null,
+          }),
+          { status: 403 },
+        ),
+      "token_invalid",
+    ],
+    [
+      "a good token without the permission (403, 9109, 'Unauthorized to access requested resource')",
+      () =>
+        new Response(
+          JSON.stringify({
+            success: false,
+            errors: [{ code: 9109, message: "Unauthorized to access requested resource" }],
+            result: null,
+          }),
+          { status: 403 },
+        ),
+      "zone_read_missing",
+    ],
     ["no zone", () => answer([]), "zone_not_found"],
     [
       "a 403 on the records read",

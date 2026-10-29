@@ -22,6 +22,12 @@ const MAX_BODY_BYTES = 256 * 1024;
 // error. An invalid token answers 403 with 10000, so on the zones call these win over the 403
 // permission reading. A token missing DNS: Edit answers the records calls with the same 10000.
 const TOKEN_CODES = new Set([1000, 6003, 6111, 10000]);
+// Cloudflare answers 403 with 9109 both for a token it does not know ("Invalid access token") and
+// for a token that is good but lacks the permission ("Unauthorized to access requested resource"),
+// as measured against a real account on 2026-10-29. Only the words tell the two apart, so the
+// words are read here, to choose between "paste it again" and "give it that permission". The
+// person never sees them.
+const INVALID_TOKEN_MESSAGE = /invalid access token/i;
 // "A record with that host already exists" (81053 any of A/AAAA/CNAME, 81054 CNAME, 81057 identical).
 const CONFLICT_CODES = new Set([81053, 81054, 81057]);
 
@@ -33,6 +39,7 @@ const RECORD_TYPE = /^[A-Z0-9]{1,12}$/;
 interface Envelope {
   success: boolean;
   codes: number[];
+  messages: string[];
   result: unknown;
 }
 
@@ -55,16 +62,18 @@ interface Subject {
 function readEnvelope(json: unknown): Envelope | null {
   if (!isObject(json) || typeof json.success !== "boolean") return null;
   const codes: number[] = [];
+  const messages: string[] = [];
   if (Array.isArray(json.errors)) {
     for (const error of json.errors) {
       if (!isObject(error)) return null;
       if (typeof error.code === "number") codes.push(error.code);
+      if (typeof error.message === "string") messages.push(error.message);
       if (Array.isArray(error.error_chain))
         for (const link of error.error_chain)
           if (isObject(link) && typeof link.code === "number") codes.push(link.code);
     }
   }
-  return { success: json.success, codes, result: json.result };
+  return { success: json.success, codes, messages, result: json.result };
 }
 
 async function call(
@@ -100,7 +109,11 @@ async function call(
 /** Why a call failed, in the person's terms. Status 0 is "no usable answer at all". */
 function refusal(answer: Answer, stage: Stage, subject: Subject): DnsWriteError {
   const codes = answer.body?.codes ?? [];
-  const refusedToken = answer.status === 401 || codes.some((c) => TOKEN_CODES.has(c));
+  const messages = answer.body?.messages ?? [];
+  const refusedToken =
+    answer.status === 401 ||
+    codes.some((c) => TOKEN_CODES.has(c)) ||
+    messages.some((m) => INVALID_TOKEN_MESSAGE.test(m));
   if (stage === "zones" && refusedToken) return new DnsWriteError("token_invalid");
   // A conflict Cloudflare reports is with the record we tried to add.
   if (codes.some((c) => CONFLICT_CODES.has(c)))
