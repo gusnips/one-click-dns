@@ -1,0 +1,95 @@
+{
+  "name": "@gusnips/one-click-dns",
+  "version": "0.1.0",
+  "packageManager": "bun@1.4.2",
+  "description": "Put DNS records in a customer's zone: find their DNS host, send them to a signed Domain Connect link, write with an API token, or show the steps for that host",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./server": {
+      "import": {
+        "types": "./dist/server/index.d.ts",
+        "default": "./dist/server/index.js"
+      },
+      "require": {
+        "types": "./dist/server/index.d.cts",
+        "default": "./dist/server/index.cjs"
+      }
+    },
+    "./writers": {
+      "import": {
+        "types": "./dist/writers/index.d.ts",
+        "default": "./dist/writers/index.js"
+      },
+      "require": {
+        "types": "./dist/writers/index.d.cts",
+        "default": "./dist/writers/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts src/server/index.ts src/writers/index.ts --format cjs,esm --dts --clean",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "format": "prettier --write .",
+    "test": "bun test",
+    "prepublishOnly": "bun run lint && bun run typecheck && bun run build"
+  },
+  "keywords": [
+    "dns",
+    "domain-connect",
+    "custom-domain",
+    "cloudflare",
+    "godaddy",
+    "name-com",
+    "registro-br",
+    "typescript"
+  ],
+  "author": "Gustavo Salomé (gusnips)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gusnips/one-click-dns.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gusnips/one-click-dns/issues"
+  },
+  "homepage": "https://github.com/gusnips/one-click-dns#readme",
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@gusnips/server": ">=0.15.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@gusnips/server": "^0.15.0",
+    "@types/bun": "^1.4.2",
+    "@types/node": "^26.6.5",
+    "eslint": "^10.12.0",
+    "prettier": "^3.9.10",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.71.1"
+  }
+}

@@ -1,0 +1,15 @@
+import type { DnsHostId } from "../hosts.ts";
+import { cloudflare } from "./cloudflare.ts";
+import type { DnsWriter } from "./types.ts";
+
+export { cloudflare };
+export {
+  DnsWriteError,
+  type DnsWriteErrorCode,
+  type DnsWriteOutcome,
+  type DnsWriteRecord,
+  type DnsWriter,
+} from "./types.ts";
+
+/** The hosts that take a pasted token, by host id: `writers[host]` is undefined for the rest. */
+export const writers: Partial<Record<DnsHostId, DnsWriter>> = { cloudflare };
