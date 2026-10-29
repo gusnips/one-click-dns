@@ -52,6 +52,9 @@ export const CONNECT_PROVIDERS: readonly ConnectProvider[] = [
   // Settings read 2026-10-29 from domainconnect.api.godaddy.com (`urlSyncUX`
   // https://dcc.godaddy.com/manage). The TXT value on a customer's zone is not read yet: if it
   // differs, GoDaddy answers "not offered", which is the safe way to be wrong.
+  // GoDaddy told us on 2026-10-29 that it is "not currently accepting new templates for direct
+  // onboarding", with no timeline. It supports many templates already (9 of 12 third-party ones
+  // we probed), so the entry stays for them, but a template of yours answers "not offered" there.
   {
     id: "godaddy",
     txt: "domainconnect.api.godaddy.com",
