@@ -62,7 +62,7 @@ When the write fails, it throws a `DnsWriteError` with a `code`. Word each code 
 | `conflict`          | The name already has another record (`params.type`). They decide what to do with it. |
 | `unavailable`       | The host did not answer. Try again.                                                  |
 
-Three hosts have a writer today. What the person pastes is different for each:
+Four hosts have a writer today. What the person pastes is different for each:
 
 | Writer         | `token` is              | What it needs                                                           |
 | -------------- | ----------------------- | ----------------------------------------------------------------------- |
