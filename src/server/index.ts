@@ -5,6 +5,7 @@ export {
   type DnsAsk,
   type DnsLookups,
 } from "./dns.ts";
+export type { FetchFn } from "../bounded-fetch.ts";
 export { dnsHostOf, readDnsZone, type ZoneLookups } from "./zone.ts";
 export { CONNECT_PROVIDERS, type ConnectProvider } from "./connect/providers.ts";
 export { discoverConnect, type Discovery, type DiscoveryIo } from "./connect/discover.ts";

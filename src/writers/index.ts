@@ -5,6 +5,7 @@ import { namecom } from "./namecom.ts";
 import { porkbun } from "./porkbun.ts";
 import type { DnsWriter } from "./types.ts";
 
+export type { FetchFn } from "../bounded-fetch.ts";
 export { cloudflare, digitalocean, namecom, porkbun };
 export {
   DnsWriteError,

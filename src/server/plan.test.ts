@@ -19,8 +19,7 @@ function io(ns: string[] | "failed", txt: Record<string, string[]> = {}, hasTemp
       ns === "failed" ? "failed" : name === "acme.io" ? { names: ns } : "absent",
     cname: async () => "absent" as const,
     txt: async (name: string) => (txt[name] ? { txts: txt[name] } : ("absent" as const)),
-    // `typeof fetch` also carries statics a fake has no use for; the call shape is all that counts.
-    fetch: (async (url: string) => {
+    fetch: async (url: string) => {
       asked.push(url);
       if (url === `${API}/v2/acme.io/settings`)
         return Response.json({
@@ -30,7 +29,7 @@ function io(ns: string[] | "failed", txt: Record<string, string[]> = {}, hasTemp
           urlAPI: API,
         });
       return hasTemplate ? Response.json({}) : new Response("{}", { status: 404 });
-    }) as unknown as typeof fetch,
+    },
   };
 }
 

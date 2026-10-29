@@ -10,7 +10,7 @@
 // ponytail: not run against a live account. The docs do not say whether a CNAME's `answer` takes
 // a trailing dot, so it is sent as given and the record Name.com echoes back must carry the same
 // target; if it does not, this fails instead of reporting a record we did not mean to add.
-import { fetchBounded } from "../bounded-fetch.ts";
+import { fetchBounded, type FetchFn } from "../bounded-fetch.ts";
 import { normalizeDnsName } from "../dns-name.ts";
 import { isObject } from "../guards.ts";
 import { decide, sameValue, zoneCandidates, type ExistingRecord } from "./policy.ts";
@@ -40,7 +40,7 @@ function basicOf(token: string): string | null {
 }
 
 async function call(
-  doFetch: typeof fetch,
+  doFetch: FetchFn,
   basic: string,
   path: string,
   send?: { body: unknown },

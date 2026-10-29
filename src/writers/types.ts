@@ -1,5 +1,6 @@
 // What every token writer shares: one record in, one outcome out, and a closed list of reasons it
 // can fail. The app words each reason in its own languages; nothing here is meant to be shown.
+import type { FetchFn } from "../bounded-fetch.ts";
 import type { DnsHostId } from "../hosts.ts";
 
 export interface DnsWriteRecord {
@@ -69,6 +70,6 @@ export interface DnsWriter {
     record: DnsWriteRecord;
     /** Shown beside the record in the host's panel, where the host has such a field. */
     comment?: string;
-    fetch?: typeof fetch;
+    fetch?: FetchFn;
   }): Promise<DnsWriteOutcome>;
 }

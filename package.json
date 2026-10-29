@@ -1,6 +1,6 @@
 {
   "name": "@gusnips/one-click-dns",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "packageManager": "bun@1.4.2",
   "description": "Put DNS records in a customer's zone: find their DNS host, send them to a signed Domain Connect link, write with an API token, or show the steps for that host",
   "type": "module",
@@ -79,7 +79,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@gusnips/server": ">=0.15.0"
+    "@gusnips/server": ">=0.14.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

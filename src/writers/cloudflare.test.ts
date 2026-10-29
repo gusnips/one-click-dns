@@ -49,9 +49,7 @@ function fakeFetch(route: Route) {
     calls.push(call);
     return route(call);
   };
-  // Bun's `typeof fetch` also carries `preconnect`, which the module never calls; the function
-  // shape is all the fake has to honour.
-  return { fetch: impl as unknown as typeof fetch, calls };
+  return { fetch: impl, calls };
 }
 
 /** A zone `acme.com` and the given records at the hostname; writes answer with an empty record. */

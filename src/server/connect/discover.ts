@@ -11,7 +11,7 @@
 // is bounded and never follows a redirect. The whole thing runs inside one time budget, and a
 // budget that runs out, a failed lookup or a failed request is "unanswered", never an error:
 // the person still has the records to copy.
-import { fetchBounded, type BoundedAnswer } from "../../bounded-fetch.ts";
+import { fetchBounded, type BoundedAnswer, type FetchFn } from "../../bounded-fetch.ts";
 import { isObject } from "../../guards.ts";
 import type { DnsLookups } from "../dns.ts";
 import { CONNECT_PROVIDERS, type ConnectProvider } from "./providers.ts";
@@ -21,7 +21,7 @@ const MAX_ANSWER_BYTES = 64 * 1024;
 
 export interface DiscoveryIo {
   txt: DnsLookups["txt"];
-  fetch?: typeof fetch;
+  fetch?: FetchFn;
 }
 
 export type Discovery =
