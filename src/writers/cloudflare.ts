@@ -10,12 +10,8 @@
 import { fetchBounded, type BoundedAnswer } from "../bounded-fetch.ts";
 import { normalizeDnsName } from "../dns-name.ts";
 import { isObject } from "../guards.ts";
-import {
-  DnsWriteError,
-  type DnsWriter,
-  type DnsWriteOutcome,
-  type DnsWriteRecord,
-} from "./types.ts";
+import { decide, zoneCandidates, type ExistingRecord } from "./policy.ts";
+import { DnsWriteError, type DnsWriter, type DnsWriteOutcome } from "./types.ts";
 
 const API = "https://api.cloudflare.com/client/v4";
 const TIMEOUT_MS = 10_000;
@@ -129,12 +125,6 @@ interface ZoneRow {
   id: string;
   name: string;
 }
-interface RecordRow {
-  id: string;
-  type: string;
-  content: string;
-  proxied?: boolean;
-}
 
 function zonesOf(result: unknown): ZoneRow[] {
   if (!Array.isArray(result)) throw new DnsWriteError("unavailable");
@@ -146,7 +136,7 @@ function zonesOf(result: unknown): ZoneRow[] {
   });
 }
 
-function recordsOf(result: unknown): RecordRow[] {
+function recordsOf(result: unknown): ExistingRecord[] {
   if (!Array.isArray(result)) throw new DnsWriteError("unavailable");
   return result.map((row: unknown) => {
     if (
@@ -165,35 +155,6 @@ function recordsOf(result: unknown): RecordRow[] {
       proxied: typeof row.proxied === "boolean" ? row.proxied : undefined,
     };
   });
-}
-
-/** The name and the parents of it, closest first, down to two labels: help.acme.co.uk asks
- *  help.acme.co.uk (a zone of its own, delegated), then acme.co.uk, never co.uk. */
-function zoneCandidates(hostname: string): string[] {
-  const labels = hostname.split(".");
-  const names: string[] = [];
-  for (let start = 0; start < labels.length - 1; start++) names.push(labels.slice(start).join("."));
-  return names;
-}
-
-/** What Cloudflare answers for a TXT: the text wrapped in quotes, split into 255-byte strings
- *  past that. Compared as the text. */
-// ponytail: read as the dashboard shows it; confirm against a live zone before relying on it.
-const unquoted = (content: string) => content.replace(/"\s+"/g, "").replace(/^"|"$/g, "");
-
-const sameValue = (record: DnsWriteRecord, existing: RecordRow) =>
-  record.type === "CNAME"
-    ? normalizeDnsName(existing.content) === normalizeDnsName(record.value)
-    : unquoted(existing.content) === record.value;
-
-/** A name keeps one SPF record, so a second one at it is a conflict, not an addition. */
-const isSpf = (text: string) => /^v=spf1(?:\s|$)/i.test(unquoted(text).trim());
-
-/** Whether `existing` keeps `record` from being added. A CNAME stands alone at its name, and a
- *  TXT can't sit beside one; TXT records beside TXT records are fine, except a second SPF. */
-function blocks(record: DnsWriteRecord, existing: RecordRow): boolean {
-  if (record.type === "CNAME" || existing.type === "CNAME") return true;
-  return existing.type === "TXT" && isSpf(record.value) && isSpf(existing.content);
 }
 
 export const cloudflare: DnsWriter = {
@@ -227,11 +188,11 @@ export const cloudflare: DnsWriter = {
         subject,
       ),
     );
-    const ours = existing.find((r) => r.type === record.type && sameValue(record, r));
-    if (ours) {
-      if (record.type !== "CNAME" || ours.proxied !== true) return "unchanged";
+    const decision = decide(record, existing, hostname);
+    if (decision.kind === "unchanged") return "unchanged";
+    if (decision.kind === "unproxy") {
       resultOf(
-        await call(doFetch, token, `/zones/${zoneId}/dns_records/${ours.id}`, {
+        await call(doFetch, token, `/zones/${zoneId}/dns_records/${decision.id}`, {
           method: "PATCH",
           body: { proxied: false },
         }),
@@ -240,8 +201,6 @@ export const cloudflare: DnsWriter = {
       );
       return "unproxied";
     }
-    const blocker = existing.find((r) => blocks(record, r));
-    if (blocker) throw new DnsWriteError("conflict", { hostname, type: blocker.type });
 
     resultOf(
       await call(doFetch, token, `/zones/${zoneId}/dns_records`, {
