@@ -21,21 +21,26 @@ export async function fetchBounded(
   init: RequestInit,
   limits: { timeoutMs: number; maxBytes: number },
 ): Promise<BoundedAnswer | null> {
-  try {
-    const res = await doFetch(url, {
-      ...init,
-      redirect: "manual",
-      signal: AbortSignal.timeout(limits.timeoutMs),
-    });
-    if (res.type === "opaqueredirect" || (res.status >= 300 && res.status < 400)) {
-      await res.body?.cancel().catch(() => undefined);
-      // An answer, and not one we use: the status stays, the body is never read.
-      return { status: res.status || 302, text: "" };
+  const signal = AbortSignal.timeout(limits.timeoutMs);
+  // The real `fetch` stops when the signal fires. A wrapper or a fake might not, so the same
+  // timer also ends the wait here: the bound holds whatever `doFetch` does with the signal.
+  const outOfTime = new Promise<null>((resolve) => {
+    signal.addEventListener("abort", () => resolve(null), { once: true });
+  });
+  const attempt = async (): Promise<BoundedAnswer | null> => {
+    try {
+      const res = await doFetch(url, { ...init, redirect: "manual", signal });
+      if (res.type === "opaqueredirect" || (res.status >= 300 && res.status < 400)) {
+        await res.body?.cancel().catch(() => undefined);
+        // An answer, and not one we use: the status stays, the body is never read.
+        return { status: res.status || 302, text: "" };
+      }
+      const { bytes, truncated } = await readBounded(res.body, limits.maxBytes);
+      if (truncated) return null;
+      return { status: res.status, text: new TextDecoder().decode(bytes) };
+    } catch {
+      return null;
     }
-    const { bytes, truncated } = await readBounded(res.body, limits.maxBytes);
-    if (truncated) return null;
-    return { status: res.status, text: new TextDecoder().decode(bytes) };
-  } catch {
-    return null;
-  }
+  };
+  return Promise.race([attempt(), outOfTime]);
 }
