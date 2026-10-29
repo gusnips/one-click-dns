@@ -137,3 +137,30 @@ describe("every preset follows the Templates repository's rules", () => {
     expect(three.variableDescription).toContain("%target3%");
   });
 });
+
+describe("the hosted-mail templates colding files", () => {
+  it("builds the DKIM template with fixed selectors and a fixed target zone", () => {
+    const t = dkimTemplate(COLDING, {
+      serviceId: "mail-domain-dkim",
+      serviceName: "Sign your email with colding",
+      description: "Adds the two CNAME records that let colding sign email sent from your domain.",
+      selectors: ["cd1", "cd2"],
+      pointsTo: (n) => `%dkim${n}%.slate-dns.com`,
+      variableDescription:
+        "%dkim1% and %dkim2%: the labels colding gave this domain's two DKIM keys. They sit under slate-dns.com.",
+    });
+    expect(t.records).toEqual([
+      { type: "CNAME", host: "cd1._domainkey", pointsTo: "%dkim1%.slate-dns.com", ttl: 3600 },
+      { type: "CNAME", host: "cd2._domainkey", pointsTo: "%dkim2%.slate-dns.com", ttl: 3600 },
+    ]);
+    expect(templateFileName(t)).toBe("getcolding.com.mail-domain-dkim.json");
+  });
+
+  it("describes the target variables of fixed selectors when you give no description", () => {
+    const t = dkimTemplate(COLDING, { selectors: ["a", "b"] });
+    expect(t.records.map((r) => r.host)).toEqual(["a._domainkey", "b._domainkey"]);
+    expect(t.variableDescription).toBe(
+      "%target1%: where a._domainkey points; %target2%: where b._domainkey points",
+    );
+  });
+});

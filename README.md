@@ -141,6 +141,8 @@ console.log(templateFileName(template)); // "example.com.custom-domain.json"
 
 There are presets for a CNAME, DMARC, SPF, DKIM, MX and a verification TXT.
 
+Two of them change how a domain's email works. The MX preset replaces the MX records the domain has, so its mail goes somewhere else. The SPF preset adds a sender to the domain's SPF record. Ask the person for consent in your own screen before you offer either link, and say what changes in the template's `description`, which the DNS host shows when they approve.
+
 A template belongs to the company that files it. It names your key domain, and the host checks every link against the key published there. So you cannot use someone else's template, and nobody can use yours. The customer's domain is not in the template: it comes with each link, so one template serves every customer.
 
 To file a template: test it in the [online editor](https://domainconnect.paulonet.eu/dc/free/templateedit), run `dc-template-linter -merge-or-fail` on it, open a pull request, then ask each DNS host to switch it on.
