@@ -62,13 +62,14 @@ When the write fails, it throws a `DnsWriteError` with a `code`. Word each code 
 | `conflict`          | The name already has another record (`params.type`). They decide what to do with it. |
 | `unavailable`       | The host did not answer. Try again.                                                  |
 
-Four hosts have a writer today. What the person pastes is different for each:
+Four hosts have a writer today. What the person pastes is different for each. Every test uses a fake network, so none of them has run against a real account here:
 
-| Writer         | `token` is              | What it needs                                                           |
-| -------------- | ----------------------- | ----------------------------------------------------------------------- |
-| `cloudflare`   | An API token            | `Zone:Read` and `DNS:Edit`                                              |
-| `porkbun`      | `apikey:secretapikey`   | "API access" turned on for the domain in Porkbun (it is off by default) |
-| `digitalocean` | A personal access token | `domain:read` and `domain:create`, or full access                       |
+| Writer         | `token` is              | What it needs                                                           | How far it is checked                                              |
+| -------------- | ----------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `cloudflare`   | An API token            | `Zone:Read` and `DNS:Edit`                                              | Lifted from featury's live help-center code                        |
+| `porkbun`      | `apikey:secretapikey`   | "API access" turned on for the domain in Porkbun (it is off by default) | Written from the host's API spec. Never run against a real account |
+| `digitalocean` | A personal access token | `domain:read` and `domain:create`, or full access                       | Written from the host's API spec. Never run against a real account |
+| `name-com`     | `username:apitoken`     | API access turned on in Account Settings, Security                      | Written from the host's docs. Never run against a real account     |
 
 `writers` maps a host id to its writer, so `writers[host]` is `undefined` for a host with no writer.
 

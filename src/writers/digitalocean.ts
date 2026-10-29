@@ -6,7 +6,7 @@
 //
 // Spec read 2026-10-29: https://github.com/digitalocean/openapi (domains resources). A CNAME's
 // target must end with a dot, or DigitalOcean adds the domain to it.
-import { fetchBounded } from "../bounded-fetch.ts";
+import { fetchBounded, type FetchFn } from "../bounded-fetch.ts";
 import { normalizeDnsName } from "../dns-name.ts";
 import { isObject } from "../guards.ts";
 import { decide, zoneCandidates, type ExistingRecord } from "./policy.ts";
@@ -26,7 +26,7 @@ interface Answer {
 }
 
 async function call(
-  doFetch: typeof fetch,
+  doFetch: FetchFn,
   token: string,
   path: string,
   send?: { body: unknown },

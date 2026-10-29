@@ -6,13 +6,17 @@
 // quote the URL, so none is kept or rethrown.
 import { readBounded } from "@gusnips/server";
 
+/** What the package needs from `fetch`: a function from a URL and options to a response. The
+ *  global `fetch` is one, and so is a test's fake, with no cast. */
+export type FetchFn = (url: string, init: RequestInit) => Promise<Response>;
+
 export interface BoundedAnswer {
   status: number;
   text: string;
 }
 
 export async function fetchBounded(
-  doFetch: typeof fetch,
+  doFetch: FetchFn,
   url: string,
   init: RequestInit,
   limits: { timeoutMs: number; maxBytes: number },

@@ -20,15 +20,13 @@ const SETTINGS = {
 function fakeProvider(answers: Record<string, Response | (() => Promise<Response>)>) {
   const asked: string[] = [];
   const inits: RequestInit[] = [];
-  // `typeof fetch` also carries statics (`preconnect`) a fake has no use for: the call shape is all
-  // the code under test relies on.
-  const fetch = (async (url: string, init: RequestInit) => {
+  const fetch = async (url: string, init: RequestInit) => {
     asked.push(url);
     inits.push(init);
     const answer = answers[url];
     if (!answer) return new Response("{}", { status: 404 });
     return typeof answer === "function" ? answer() : answer;
-  }) as unknown as typeof globalThis.fetch;
+  };
   return { fetch, asked, inits };
 }
 

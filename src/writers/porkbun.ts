@@ -10,7 +10,7 @@
 // write, is what says the record is live.
 //
 // Spec read 2026-10-29: https://porkbun.com/api/json/v3/spec.
-import { fetchBounded } from "../bounded-fetch.ts";
+import { fetchBounded, type FetchFn } from "../bounded-fetch.ts";
 import { normalizeDnsName } from "../dns-name.ts";
 import { isObject } from "../guards.ts";
 import { decide, zoneCandidates, type ExistingRecord } from "./policy.ts";
@@ -58,7 +58,7 @@ function keysOf(token: string): Keys | null {
 }
 
 async function call(
-  doFetch: typeof fetch,
+  doFetch: FetchFn,
   keys: Keys,
   path: string,
   send?: { body: unknown },

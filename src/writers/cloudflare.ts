@@ -7,7 +7,7 @@
 // redirect followed (a 3xx is not Cloudflare answering), a 10 s deadline that stays armed through
 // the body read, and a capped body parsed for the few fields used. We never overwrite or delete a
 // record the person already has: a conflict is theirs to resolve.
-import { fetchBounded, type BoundedAnswer } from "../bounded-fetch.ts";
+import { fetchBounded, type BoundedAnswer, type FetchFn } from "../bounded-fetch.ts";
 import { normalizeDnsName } from "../dns-name.ts";
 import { isObject } from "../guards.ts";
 import { decide, zoneCandidates, type ExistingRecord } from "./policy.ts";
@@ -68,7 +68,7 @@ function readEnvelope(json: unknown): Envelope | null {
 }
 
 async function call(
-  doFetch: typeof fetch,
+  doFetch: FetchFn,
   token: string,
   path: string,
   send?: { method: "POST" | "PATCH"; body: unknown },

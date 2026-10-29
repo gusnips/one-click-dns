@@ -35,9 +35,7 @@ function fakeFetch(route: Route) {
     calls.push(call);
     return route(call);
   };
-  // `typeof fetch` also carries statics (`preconnect`) the module never calls; the function
-  // shape is all the fake has to honour.
-  return { fetch: impl as unknown as typeof fetch, calls };
+  return { fetch: impl, calls };
 }
 
 const row = (id: number, name: string, type: string, data: string) => ({
