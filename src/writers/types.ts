@@ -54,7 +54,8 @@ const MESSAGES: Record<DnsWriteErrorCode, (params: Readonly<Record<string, strin
   zone_read_missing: () => "That token can't read your domains",
   dns_edit_missing: () => "That token can't change DNS records",
   zone_not_found: (p) => `No zone holds ${p.hostname ?? "that name"}`,
-  conflict: (p) => `${p.hostname ?? "That name"} already has a record (type ${p.type ?? "?"})`,
+  conflict: (p) =>
+    `${p.hostname ?? "That name"} already has a record${p.type ? ` (type ${p.type})` : ""}`,
   unavailable: () => "Couldn't reach the DNS host",
 };
 
