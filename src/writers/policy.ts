@@ -29,7 +29,9 @@ export function zoneCandidates(hostname: string): string[] {
 // ponytail: read as the dashboards show it; confirm against a live zone before relying on it.
 const unquoted = (content: string) => content.replace(/"\s+"/g, "").replace(/^"|"$/g, "");
 
-const sameValue = (record: DnsWriteRecord, existing: ExistingRecord) =>
+/** Whether `existing` holds the value `record` means, ignoring case and a final dot (CNAME) or
+ *  the quotes around the text (TXT). */
+export const sameValue = (record: DnsWriteRecord, existing: Pick<ExistingRecord, "content">) =>
   record.type === "CNAME"
     ? normalizeDnsName(existing.content) === normalizeDnsName(record.value)
     : unquoted(existing.content) === record.value;
