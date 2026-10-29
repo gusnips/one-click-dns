@@ -168,35 +168,54 @@ export function spfTemplate(
   );
 }
 
-/** DKIM as CNAMEs, for services that publish the key on their side. The link carries
- *  `%selector1%` and `%target1%`, then the same pair numbered up to `keys`. */
+/**
+ * DKIM as CNAMEs, for services that publish the key on their side.
+ *
+ * By default the link carries `%selector1%` and `%target1%`, then the same pair numbered up to
+ * `keys`. When your key names never change, fix them: `selectors: ["cd1", "cd2"]` writes
+ * `cd1._domainkey` and `cd2._domainkey` into the template, which the repository prefers to a
+ * variable. `pointsTo` then names where each CNAME goes (`(n) => "%dkim" + n + "%.example.net"`),
+ * and `variableDescription` says what its variables mean.
+ */
 export function dkimTemplate(
   identity: TemplateIdentity,
-  options: Wording & { keys?: number } = {},
+  options: Wording & {
+    keys?: number;
+    selectors?: readonly string[];
+    pointsTo?: (n: number) => string;
+    variableDescription?: string;
+  } = {},
 ): DomainConnectTemplate {
-  const keys = options.keys ?? 2;
+  const { selectors } = options;
+  const keys = selectors?.length ?? options.keys ?? 2;
   const numbers = Array.from({ length: keys }, (_, index) => index + 1);
+  const hostOf = (n: number) =>
+    selectors ? `${selectors[n - 1]}._domainkey` : `%selector${n}%._domainkey`;
+  const describe = (n: number) =>
+    selectors
+      ? `%target${n}%: where ${selectors[n - 1]}._domainkey points`
+      : `%selector${n}%: the key name, ${n} of ${keys}; %target${n}%: where it points`;
   return template(
     identity,
     "dkim",
     {
       serviceName: "Sign your email with our key",
       description: "Adds the CNAME records that let us sign email sent from your domain.",
-      variableDescription: numbers
-        .map((n) => `%selector${n}%: the key name, ${n} of ${keys}; %target${n}%: where it points`)
-        .join("; "),
+      variableDescription: options.variableDescription ?? numbers.map(describe).join("; "),
     },
     options,
     numbers.map((n) => ({
       type: "CNAME" as const,
-      host: `%selector${n}%._domainkey`,
-      pointsTo: `%target${n}%`,
+      host: hostOf(n),
+      pointsTo: options.pointsTo?.(n) ?? `%target${n}%`,
       ttl: TTL,
     })),
   );
 }
 
-/** The MX record that sends the domain's mail to you. */
+/** The MX record that sends the domain's mail to you. It changes where the domain's email is
+ *  delivered and replaces the MX records it has, so ask the person for consent before you offer
+ *  the link; say so in `description` too. */
 export function mxTemplate(
   identity: TemplateIdentity,
   options: Wording & { pointsTo: string; priority?: number },
