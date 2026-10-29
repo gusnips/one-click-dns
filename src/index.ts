@@ -19,3 +19,15 @@ export {
   type DnsRecordSpec,
 } from "./records.ts";
 export { normalizeDnsName } from "./dns-name.ts";
+export {
+  cnameTemplate,
+  dkimTemplate,
+  dmarcTemplate,
+  mxTemplate,
+  spfTemplate,
+  templateFileName,
+  verificationTemplate,
+  type DomainConnectTemplate,
+  type TemplateIdentity,
+  type TemplateRecord,
+} from "./templates.ts";
