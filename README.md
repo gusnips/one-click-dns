@@ -62,16 +62,26 @@ When the write fails, it throws a `DnsWriteError` with a `code`. Word each code 
 | `conflict`          | The name already has another record (`params.type`). They decide what to do with it. |
 | `unavailable`       | The host did not answer. Try again.                                                  |
 
-Four hosts have a writer today. What the person pastes is different for each. Every test uses a fake network, so none of them has run against a real account here:
+Four hosts have a writer today. What the person pastes is different for each. The tests use a fake network. Cloudflare and DigitalOcean were also run against a real account, with made-up underscore names that were deleted after. Porkbun and Name.com were not:
 
-| Writer         | `token` is              | What it needs                                                           | How far it is checked                                              |
-| -------------- | ----------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `cloudflare`   | An API token            | `Zone:Read` and `DNS:Edit`                                              | Lifted from featury's live help-center code                        |
-| `porkbun`      | `apikey:secretapikey`   | "API access" turned on for the domain in Porkbun (it is off by default) | Written from the host's API spec. Never run against a real account |
-| `digitalocean` | A personal access token | `domain:read` and `domain:create`, or full access                       | Written from the host's API spec. Never run against a real account |
-| `name-com`     | `username:apitoken`     | API access turned on in Account Settings, Security                      | Written from the host's docs. Never run against a real account     |
+| Writer         | `token` is              | What it needs                                                           | How far it is checked                                                                     |
+| -------------- | ----------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `cloudflare`   | An API token            | `Zone:Read` and `DNS:Edit`                                              | Run against a real zone on 2026-10-29: create, repeat, TXT, conflicts and a wrong token   |
+| `porkbun`      | `apikey:secretapikey`   | "API access" turned on for the domain in Porkbun (it is off by default) | Written from the host's API spec. Never run against a real account                        |
+| `digitalocean` | A personal access token | `domain:read` and `domain:create`, or full access                       | Run against a real domain on 2026-10-29: create, repeat, TXT, conflicts and a wrong token |
+| `name-com`     | `username:apitoken`     | API access turned on in Account Settings, Security                      | Written from the host's docs. Never run against a real account                            |
 
 `writers` maps a host id to its writer, so `writers[host]` is `undefined` for a host with no writer.
+
+### Check a writer against your own account
+
+The repository has a script that tries a writer on a real zone and removes what it made. Use a spare zone and a token limited to it:
+
+```bash
+HOST=cloudflare ZONE=example.com TOKEN=your-token bun run live
+```
+
+It writes a CNAME and a TXT record under made-up underscore names, runs each a second time (both must read as "unchanged"), checks that a clashing record is refused and that a wrong token is reported as one, then deletes its records. Cloudflare and DigitalOcean are supported.
 
 ## One-click links (Domain Connect)
 
