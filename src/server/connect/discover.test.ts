@@ -44,10 +44,17 @@ const ask = (
   txt: string[] | "failed" | "absent",
   fetch?: ReturnType<typeof fakeProvider>["fetch"],
   budgetMs = 2_000,
+  requireMultiInstance = false,
 ) =>
   discoverConnect(
     { txt: dnsWith(txt), fetch },
-    { zone: "acme.io", providerId: PROVIDER_ID, serviceId: "dmarc", budgetMs },
+    {
+      zone: "acme.io",
+      providerId: PROVIDER_ID,
+      serviceId: "dmarc",
+      budgetMs,
+      requireMultiInstance,
+    },
   );
 
 describe("discoverConnect", () => {
@@ -63,6 +70,61 @@ describe("discoverConnect", () => {
       syncUrl: "https://dash.cloudflare.com/domainconnect",
     });
     expect(asked).toEqual([settingsUrl("acme.io"), templateUrl("dmarc")]);
+  });
+
+  it.each([
+    {},
+    { multiInstance: false },
+    { multiInstance: "true" },
+    { multiInstance: 1 },
+    null,
+    [],
+  ])(
+    "refuses a template without explicit multi-instance support when required: %j",
+    async (template) => {
+      const { fetch, asked } = fakeProvider({
+        [settingsUrl("acme.io")]: json(SETTINGS),
+        [templateUrl("dmarc")]: json(template),
+      });
+      expect(await ask([CLOUDFLARE_TXT], fetch, 2_000, true)).toEqual({
+        found: false,
+        reason: "not_offered",
+      });
+      expect(asked).toEqual([settingsUrl("acme.io"), templateUrl("dmarc")]);
+    },
+  );
+
+  it("accepts required multi-instance support from the same bounded template response", async () => {
+    const { fetch, asked } = fakeProvider({
+      [settingsUrl("acme.io")]: json(SETTINGS),
+      [templateUrl("dmarc")]: json({ multiInstance: true }),
+    });
+    expect(await ask([CLOUDFLARE_TXT], fetch, 2_000, true)).toMatchObject({ found: true });
+    expect(asked).toEqual([settingsUrl("acme.io"), templateUrl("dmarc")]);
+  });
+
+  it("refuses malformed template JSON only when its capability is required", async () => {
+    const provider = () =>
+      fakeProvider({
+        [settingsUrl("acme.io")]: json(SETTINGS),
+        [templateUrl("dmarc")]: new Response("not JSON", { status: 200 }),
+      });
+    expect(await ask([CLOUDFLARE_TXT], provider().fetch, 2_000, true)).toEqual({
+      found: false,
+      reason: "not_offered",
+    });
+    expect(await ask([CLOUDFLARE_TXT], provider().fetch)).toMatchObject({ found: true });
+  });
+
+  it("keeps the template response byte limit when a capability is required", async () => {
+    const { fetch } = fakeProvider({
+      [settingsUrl("acme.io")]: json(SETTINGS),
+      [templateUrl("dmarc")]: json({ multiInstance: true, padding: "x".repeat(70_000) }),
+    });
+    expect(await ask([CLOUDFLARE_TXT], fetch, 2_000, true)).toEqual({
+      found: false,
+      reason: "unanswered",
+    });
   });
 
   it("answers not_offered while the provider hasn't onboarded our template (a 404)", async () => {

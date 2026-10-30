@@ -105,6 +105,9 @@ export async function discoverConnect(
     providerId: string;
     serviceId: string;
     budgetMs: number;
+    /** Require the provider's template JSON to explicitly advertise `multiInstance: true`.
+     *  Callers must also sign a stable instanceId for each independent service application. */
+    requireMultiInstance?: boolean;
     providers?: readonly ConnectProvider[];
   },
 ): Promise<Discovery> {
@@ -172,6 +175,15 @@ async function ask(
   );
   if (!template) return UNANSWERED;
   if (template.status !== 200) return transient(template.status) ? UNANSWERED : NOT_OFFERED;
+  if (args.requireMultiInstance) {
+    let templateBody: unknown;
+    try {
+      templateBody = JSON.parse(template.text);
+    } catch {
+      return NOT_OFFERED;
+    }
+    if (!isObject(templateBody) || templateBody.multiInstance !== true) return NOT_OFFERED;
+  }
   return {
     found: true,
     id: provider.id,
