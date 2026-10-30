@@ -105,6 +105,9 @@ export async function discoverConnect(
     providerId: string;
     serviceId: string;
     budgetMs: number;
+    /** Require verified provider support and template JSON with `multiInstance: true`.
+     *  Callers must also sign a stable instanceId for each independent service application. */
+    requireMultiInstance?: boolean;
     providers?: readonly ConnectProvider[];
   },
 ): Promise<Discovery> {
@@ -148,6 +151,7 @@ async function ask(
   const values = published.txts.map(normalizeTxt);
   const provider = providers.find((entry) => values.includes(entry.txt));
   if (!provider) return NOT_OFFERED;
+  if (args.requireMultiInstance && provider.supportsMultiInstance !== true) return NOT_OFFERED;
 
   // The settings are asked at the address the TXT names, which is not always the API's.
   const settings = await get(`https://${provider.txt}/v2/${zone}/settings`);
@@ -172,6 +176,15 @@ async function ask(
   );
   if (!template) return UNANSWERED;
   if (template.status !== 200) return transient(template.status) ? UNANSWERED : NOT_OFFERED;
+  if (args.requireMultiInstance) {
+    let templateBody: unknown;
+    try {
+      templateBody = JSON.parse(template.text);
+    } catch {
+      return NOT_OFFERED;
+    }
+    if (!isObject(templateBody) || templateBody.multiInstance !== true) return NOT_OFFERED;
+  }
   return {
     found: true,
     id: provider.id,

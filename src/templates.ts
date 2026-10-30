@@ -48,15 +48,18 @@ export interface DomainConnectTemplate extends TemplateIdentity {
   variableDescription?: string;
   /** The subdomain is required: the template has no meaning at the name itself. */
   hostRequired?: boolean;
+  /** Keep applications with different instanceId values separate. */
+  multiInstance?: boolean;
   records: TemplateRecord[];
 }
 
-/** What every preset lets the app word itself. */
+/** What every preset lets the app choose. */
 interface Wording {
   serviceId?: string;
   serviceName?: string;
   description?: string;
   version?: number;
+  multiInstance?: boolean;
 }
 
 const TTL = 3600;
@@ -81,6 +84,7 @@ function template(
     syncPubKeyDomain: identity.syncPubKeyDomain,
     syncRedirectDomain: identity.syncRedirectDomain,
     ...(hostRequired ? { hostRequired } : {}),
+    ...(wording.multiInstance !== undefined ? { multiInstance: wording.multiInstance } : {}),
     records,
   };
 }

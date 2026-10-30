@@ -103,6 +103,18 @@ describe("every preset follows the Templates repository's rules", () => {
         if (r.type === "TXT") expect(r.data, t.serviceId).not.toMatch(/^v=spf1/i);
   });
 
+  it("leaves separate instances off unless the app opts in", () => {
+    for (const t of all) expect(t).not.toHaveProperty("multiInstance");
+  });
+
+  it.each([true, false])("keeps an explicit multiInstance: %s in the template", (multiInstance) => {
+    expect(spfTemplate(COLDING, { multiInstance, version: 2 })).toEqual({
+      ...spfTemplate(COLDING),
+      version: 2,
+      multiInstance,
+    });
+  });
+
   it("never writes %host% in a host (DCTL1024), nor a bare variable as the whole label", () => {
     for (const t of all)
       for (const r of t.records) {
