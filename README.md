@@ -186,7 +186,9 @@ const discovery = await discoverConnect(
 );
 ```
 
-Without the literal JSON flag `multiInstance: true`, discovery returns `not_offered`. It reads the same size-limited response and makes no extra request. Other discovery calls keep their current behavior.
+This check needs both a provider entry with `supportsMultiInstance: true` and the literal template flag `multiInstance: true`. Missing or false support returns `not_offered`. The template check reads the same size-limited response and makes no extra request. Other discovery calls keep their current behavior.
+
+No built-in provider has verified instance support yet. [Cloudflare says it ignores this flag](https://developers.cloudflare.com/dns/reference/domain-connect/#template-definition); the other providers are unverified. Requiring instances therefore returns `not_offered` for each built-in provider. Keep a manual fallback. For a custom `providers` list, set `supportsMultiInstance: true` only after verifying that provider's behavior, not just its template JSON.
 
 Only sign when `discovery.found` is true. Pass a stable `instanceId` in `signedApplyUrl`'s `params`: derive it from the full sending domain and the service's SPF include. Repeated links for the same pair use the same id; different domains or services use different ids. The package does not choose that id for you. The flag does not check SPF's lookup limit or make a redirect back to your app proof that DNS changed.
 
