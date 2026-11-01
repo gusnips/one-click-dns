@@ -23,6 +23,8 @@ export interface ConnectProvider {
   api: string;
   /** The one host the settings' `urlSyncUX` may name: the page we send the person's browser to. */
   syncHost: string;
+  /** Verified support for separate template instances. Omitted means unverified. */
+  supportsMultiInstance?: boolean;
 }
 
 export const CONNECT_PROVIDERS: readonly ConnectProvider[] = [
@@ -33,6 +35,9 @@ export const CONNECT_PROVIDERS: readonly ConnectProvider[] = [
     txt: "api.cloudflare.com/client/v4/dns/domainconnect",
     api: "https://api.cloudflare.com/client/v4/dns/domainconnect",
     syncHost: "dash.cloudflare.com",
+    // Cloudflare documents this flag as unsupported and ignored:
+    // https://developers.cloudflare.com/dns/reference/domain-connect/#template-definition
+    supportsMultiInstance: false,
   },
   // `_domainconnect.nextjs.org` read 2026-10-29: a CNAME to `_domainconnect.vercel-dns.com`, whose
   // TXT is `domainconnect.vercel.com`. The settings name another address for the API.

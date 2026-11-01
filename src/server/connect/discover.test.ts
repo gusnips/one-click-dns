@@ -3,6 +3,7 @@
 // settings body, and the 404 a template the provider hasn't onboarded gets.
 import { describe, expect, it } from "bun:test";
 import { discoverConnect } from "./discover.ts";
+import { CONNECT_PROVIDERS, type ConnectProvider } from "./providers.ts";
 
 const CLOUDFLARE_TXT = "api.cloudflare.com/client/v4/dns/domainconnect";
 const API = `https://${CLOUDFLARE_TXT}`;
@@ -40,14 +41,55 @@ const templateUrl = (service: string) =>
 const dnsWith = (txt: string[] | "failed" | "absent") => async () =>
   txt === "failed" || txt === "absent" ? txt : { txts: txt };
 
+// A synthetic provider with verified instance support, not a claim about any real provider.
+const INSTANCE_PROVIDER: ConnectProvider = {
+  id: "example",
+  txt: "connect.example.test",
+  api: "https://connect.example.test",
+  syncHost: "dns.example.test",
+  supportsMultiInstance: true,
+};
+const INSTANCE_SETTINGS_URL = `${INSTANCE_PROVIDER.api}/v2/acme.io/settings`;
+const INSTANCE_TEMPLATE_URL = `${INSTANCE_PROVIDER.api}/v2/domainTemplates/providers/${PROVIDER_ID}/services/spf`;
+
+async function instanceDiscovery(template: Response, requireMultiInstance = true) {
+  const { fetch, asked } = fakeProvider({
+    [INSTANCE_SETTINGS_URL]: json({
+      providerName: "Example",
+      urlSyncUX: `https://${INSTANCE_PROVIDER.syncHost}/apply`,
+      urlAPI: INSTANCE_PROVIDER.api,
+    }),
+    [INSTANCE_TEMPLATE_URL]: template,
+  });
+  const result = await discoverConnect(
+    { txt: dnsWith([INSTANCE_PROVIDER.txt]), fetch },
+    {
+      zone: "acme.io",
+      providerId: PROVIDER_ID,
+      serviceId: "spf",
+      budgetMs: 2_000,
+      requireMultiInstance,
+      providers: [INSTANCE_PROVIDER],
+    },
+  );
+  return { result, asked };
+}
+
 const ask = (
   txt: string[] | "failed" | "absent",
   fetch?: ReturnType<typeof fakeProvider>["fetch"],
   budgetMs = 2_000,
+  requireMultiInstance = false,
 ) =>
   discoverConnect(
     { txt: dnsWith(txt), fetch },
-    { zone: "acme.io", providerId: PROVIDER_ID, serviceId: "dmarc", budgetMs },
+    {
+      zone: "acme.io",
+      providerId: PROVIDER_ID,
+      serviceId: "dmarc",
+      budgetMs,
+      requireMultiInstance,
+    },
   );
 
 describe("discoverConnect", () => {
@@ -63,6 +105,56 @@ describe("discoverConnect", () => {
       syncUrl: "https://dash.cloudflare.com/domainconnect",
     });
     expect(asked).toEqual([settingsUrl("acme.io"), templateUrl("dmarc")]);
+  });
+
+  it.each(CONNECT_PROVIDERS)(
+    "refuses unverified or unsupported instances at $id before any provider request",
+    async (provider) => {
+      const { fetch, asked } = fakeProvider({});
+      expect(await ask([provider.txt], fetch, 2_000, true)).toEqual({
+        found: false,
+        reason: "not_offered",
+      });
+      expect(asked).toEqual([]);
+    },
+  );
+
+  it.each([
+    {},
+    { multiInstance: false },
+    { multiInstance: "true" },
+    { multiInstance: 1 },
+    null,
+    [],
+  ])(
+    "refuses a template without explicit multi-instance support when required: %j",
+    async (template) => {
+      const { result, asked } = await instanceDiscovery(json(template));
+      expect(result).toEqual({ found: false, reason: "not_offered" });
+      expect(asked).toEqual([INSTANCE_SETTINGS_URL, INSTANCE_TEMPLATE_URL]);
+    },
+  );
+
+  it("accepts verified provider support and the flag from the same bounded template response", async () => {
+    const { result, asked } = await instanceDiscovery(json({ multiInstance: true }));
+    expect(result).toMatchObject({ found: true, id: "example" });
+    expect(asked).toEqual([INSTANCE_SETTINGS_URL, INSTANCE_TEMPLATE_URL]);
+  });
+
+  it("refuses malformed template JSON only when its capability is required", async () => {
+    const template = () => new Response("not JSON", { status: 200 });
+    expect((await instanceDiscovery(template())).result).toEqual({
+      found: false,
+      reason: "not_offered",
+    });
+    expect((await instanceDiscovery(template(), false)).result).toMatchObject({ found: true });
+  });
+
+  it("keeps the template response byte limit when a capability is required", async () => {
+    const { result } = await instanceDiscovery(
+      json({ multiInstance: true, padding: "x".repeat(70_000) }),
+    );
+    expect(result).toEqual({ found: false, reason: "unanswered" });
   });
 
   it("answers not_offered while the provider hasn't onboarded our template (a 404)", async () => {
