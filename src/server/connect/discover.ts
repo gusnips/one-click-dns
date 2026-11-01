@@ -106,7 +106,8 @@ export async function discoverConnect(
     serviceId: string;
     budgetMs: number;
     /** Require verified provider support and template JSON with `multiInstance: true`.
-     *  Callers must also sign a stable instanceId for each independent service application. */
+     *  Callers that later remove one application through the async API must pass a
+     *  stable instanceId for each independent service application. */
     requireMultiInstance?: boolean;
     providers?: readonly ConnectProvider[];
   },

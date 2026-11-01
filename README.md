@@ -190,7 +190,7 @@ This check needs both a provider entry with `supportsMultiInstance: true` and th
 
 No built-in provider has verified instance support yet. [Cloudflare says it ignores this flag](https://developers.cloudflare.com/dns/reference/domain-connect/#template-definition); the other providers are unverified. Requiring instances therefore returns `not_offered` for each built-in provider. Keep a manual fallback. For a custom `providers` list, set `supportsMultiInstance: true` only after verifying that provider's behavior, not just its template JSON.
 
-Only sign when `discovery.found` is true. Pass a stable `instanceId` in `signedApplyUrl`'s `params`: derive it from the full sending domain and the service's SPF include. Repeated links for the same pair use the same id; different domains or services use different ids. The package does not choose that id for you. The flag does not check SPF's lookup limit or make a redirect back to your app proof that DNS changed.
+Only sign when `discovery.found` is true. The signed sync link carries the template flag; the spec defines `instanceId` for the async apply and revert, not for the sync parameters. If you later remove one application through the async API, pass a stable `instanceId` derived from the full sending domain and the service's SPF include: the same pair reuses the same id, and different domains or services use different ids. The package does not choose that id for you. The flag does not check SPF's lookup limit or make a redirect back to your app proof that DNS changed.
 
 ## Steps for the host
 

@@ -48,7 +48,7 @@ export interface DomainConnectTemplate extends TemplateIdentity {
   variableDescription?: string;
   /** The subdomain is required: the template has no meaning at the name itself. */
   hostRequired?: boolean;
-  /** Keep applications with different instanceId values separate. */
+  /** Tell a stateful provider that a re-apply must not remove earlier applications. */
   multiInstance?: boolean;
   records: TemplateRecord[];
 }
