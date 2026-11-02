@@ -4,6 +4,7 @@
 // one is always there, so a person is never left without a way.
 import { dnsHostOf, readDnsZone, type ZoneLookups } from "./zone.ts";
 import { discoverConnect, type DiscoveryIo } from "./connect/discover.ts";
+import type { ConnectProvider } from "./connect/providers.ts";
 import { signedApplyUrl, type DomainConnectIdentity } from "./connect/sign.ts";
 import { writers } from "../writers/index.ts";
 import type { DnsHostId, DnsHostReading } from "../hosts.ts";
@@ -37,6 +38,13 @@ export interface PlanInput {
     /** The template's parameters for this zone: `domain`, `host`, its variables and
      *  `redirect_uri`. The app owns them. */
     params: (zone: string) => Record<string, string>;
+    /** Passed to `discoverConnect`: require a provider verified to keep separate applications
+     *  apart, and proof of it in the provider's copy of the template. */
+    requireMultiInstance?: boolean;
+    /** Passed to `discoverConnect`: the version you filed with `multiInstance: true`. */
+    instanceTemplateVersion?: number;
+    /** Passed to `discoverConnect`: the providers to ask. Left out: the package's own list. */
+    providers?: readonly ConnectProvider[];
   };
   /** Time for the zone read, and the same again for Domain Connect. Default 3 000. */
   budgetMs?: number;
@@ -62,6 +70,9 @@ export async function planConnection(
       providerId: connect.providerId,
       serviceId: connect.serviceId,
       budgetMs,
+      requireMultiInstance: connect.requireMultiInstance,
+      instanceTemplateVersion: connect.instanceTemplateVersion,
+      providers: connect.providers,
     });
     if (found.found)
       methods.push({

@@ -23,7 +23,9 @@ export interface ConnectProvider {
   api: string;
   /** The one host the settings' `urlSyncUX` may name: the page we send the person's browser to. */
   syncHost: string;
-  /** Verified support for separate template instances. Omitted means unverified. */
+  /** Verified by a live test: a second apply of the same template keeps the first one's records,
+   *  because the provider honors `multiInstance` or keeps no template state and merges SPFM.
+   *  Omitted means unverified. */
   supportsMultiInstance?: boolean;
 }
 
@@ -35,9 +37,10 @@ export const CONNECT_PROVIDERS: readonly ConnectProvider[] = [
     txt: "api.cloudflare.com/client/v4/dns/domainconnect",
     api: "https://api.cloudflare.com/client/v4/dns/domainconnect",
     syncHost: "dash.cloudflare.com",
-    // Cloudflare documents this flag as unsupported and ignored:
-    // https://developers.cloudflare.com/dns/reference/domain-connect/#template-definition
-    supportsMultiInstance: false,
+    // Unverified. Cloudflare ignores the multiInstance flag and documents merging SPFM into the
+    // existing record: https://developers.cloudflare.com/dns/reference/domain-connect/#template-definition
+    // Whether a second apply keeps the first include is untested. It answers the template query
+    // with only its version, so a caller also passes `instanceTemplateVersion`.
   },
   // `_domainconnect.nextjs.org` read 2026-10-29: a CNAME to `_domainconnect.vercel-dns.com`, whose
   // TXT is `domainconnect.vercel.com`. The settings name another address for the API.
