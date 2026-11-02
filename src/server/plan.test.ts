@@ -2,6 +2,7 @@
 import { generateKeyPairSync } from "node:crypto";
 import { describe, expect, it } from "bun:test";
 import { planConnection, type PlanInput } from "./plan.ts";
+import type { ConnectProvider } from "./connect/providers.ts";
 
 const CLOUDFLARE_NS = ["ada.ns.cloudflare.com", "bob.ns.cloudflare.com"];
 const CLOUDFLARE_TXT = "api.cloudflare.com/client/v4/dns/domainconnect";
@@ -63,6 +64,62 @@ describe("planConnection", () => {
     );
     expect(plan.methods.map((m) => m.kind)).toEqual(["api-token", "manual"]);
     expect(plan.connectUnanswered).toBe(false);
+  });
+
+  it("passes the instance requirement on, so a provider not verified for it offers no link", async () => {
+    const plan = await planConnection(
+      {
+        hostname: "help.acme.io",
+        connect: { ...connect, requireMultiInstance: true, instanceTemplateVersion: 1 },
+      },
+      io(CLOUDFLARE_NS, { "_domainconnect.acme.io": [CLOUDFLARE_TXT] }),
+    );
+    expect(plan.methods.map((m) => m.kind)).toEqual(["api-token", "manual"]);
+    expect(plan.connectUnanswered).toBe(false);
+  });
+
+  it("offers the link from a provider verified for separate instances once its version shows our filing", async () => {
+    // A synthetic provider, not a claim about a real one.
+    const VERIFIED: ConnectProvider = {
+      id: "example",
+      txt: "connect.example.test",
+      api: "https://connect.example.test",
+      syncHost: "dns.example.test",
+      supportsMultiInstance: true,
+    };
+    const verified = (template: unknown) => ({
+      ns: async (name: string) =>
+        name === "acme.io" ? { names: ["ns1.example.test"] } : ("absent" as const),
+      cname: async () => "absent" as const,
+      txt: async (name: string) =>
+        name === "_domainconnect.acme.io" ? { txts: [VERIFIED.txt] } : ("absent" as const),
+      fetch: async (url: string) =>
+        url === `${VERIFIED.api}/v2/acme.io/settings`
+          ? Response.json({
+              providerName: "Example",
+              urlSyncUX: "https://dns.example.test/apply",
+              urlAPI: VERIFIED.api,
+            })
+          : Response.json(template),
+    });
+    const ask = (filed: number) =>
+      planConnection(
+        {
+          hostname: "help.acme.io",
+          connect: {
+            ...connect,
+            requireMultiInstance: true,
+            instanceTemplateVersion: filed,
+            providers: [VERIFIED],
+          },
+        },
+        verified({ version: 2 }),
+      );
+    expect((await ask(2)).methods[0]).toMatchObject({
+      kind: "domain-connect",
+      provider: "Example",
+    });
+    expect((await ask(3)).methods.map((m) => m.kind)).not.toContain("domain-connect");
   });
 
   it("offers no link when the app has no template, and no token for a host without a writer", async () => {

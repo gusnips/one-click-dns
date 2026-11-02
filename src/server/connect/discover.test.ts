@@ -52,7 +52,11 @@ const INSTANCE_PROVIDER: ConnectProvider = {
 const INSTANCE_SETTINGS_URL = `${INSTANCE_PROVIDER.api}/v2/acme.io/settings`;
 const INSTANCE_TEMPLATE_URL = `${INSTANCE_PROVIDER.api}/v2/domainTemplates/providers/${PROVIDER_ID}/services/spf`;
 
-async function instanceDiscovery(template: Response, requireMultiInstance = true) {
+async function instanceDiscovery(
+  template: Response,
+  requireMultiInstance = true,
+  instanceTemplateVersion?: number,
+) {
   const { fetch, asked } = fakeProvider({
     [INSTANCE_SETTINGS_URL]: json({
       providerName: "Example",
@@ -69,6 +73,7 @@ async function instanceDiscovery(template: Response, requireMultiInstance = true
       serviceId: "spf",
       budgetMs: 2_000,
       requireMultiInstance,
+      instanceTemplateVersion,
       providers: [INSTANCE_PROVIDER],
     },
   );
@@ -139,6 +144,50 @@ describe("discoverConnect", () => {
     const { result, asked } = await instanceDiscovery(json({ multiInstance: true }));
     expect(result).toMatchObject({ found: true, id: "example" });
     expect(asked).toEqual([INSTANCE_SETTINGS_URL, INSTANCE_TEMPLATE_URL]);
+  });
+
+  it("accepts a provider that answers with only its version, once that is the filed version or newer", async () => {
+    for (const version of [2, 3]) {
+      const { result, asked } = await instanceDiscovery(json({ version }), true, 2);
+      expect(result, `version ${version}`).toMatchObject({ found: true, id: "example" });
+      expect(asked).toEqual([INSTANCE_SETTINGS_URL, INSTANCE_TEMPLATE_URL]);
+    }
+  });
+
+  it.each([
+    // Cloudflare's real answer today is {"version":1}.
+    { name: "an older version", body: json({ version: 1 }), filed: 2 },
+    {
+      name: "a version with no filed version to compare it with",
+      body: json({ version: 5 }),
+      filed: undefined,
+    },
+    { name: "a version that is not a number", body: json({ version: "2" }), filed: 2 },
+    { name: "an answer with no version", body: json({ name: "spf" }), filed: 2 },
+    {
+      name: "an empty answer, which the spec allows",
+      body: new Response("", { status: 200 }),
+      filed: 2,
+    },
+    { name: "a filed version that is not a whole number", body: json({ version: 2 }), filed: 1.5 },
+    { name: "a filed version below 1", body: json({ version: 2 }), filed: 0 },
+    // A whole template that lacks the flag shows the flag is missing, whatever its version.
+    {
+      name: "a template that turns the flag off",
+      body: json({ version: 2, multiInstance: false }),
+      filed: 2,
+    },
+    {
+      name: "a whole template with no flag",
+      body: json({ version: 3, providerId: PROVIDER_ID, records: [] }),
+      filed: 2,
+    },
+    // JSON can still write numbers that are not whole or not finite.
+    { name: "a version that is not a whole number", body: json({ version: 2.5 }), filed: 2 },
+    { name: "a version too big to be finite", body: new Response('{"version":1e400}'), filed: 2 },
+  ])("refuses $name when separate instances are required", async ({ body, filed }) => {
+    const { result } = await instanceDiscovery(body, true, filed);
+    expect(result).toEqual({ found: false, reason: "not_offered" });
   });
 
   it("refuses malformed template JSON only when its capability is required", async () => {

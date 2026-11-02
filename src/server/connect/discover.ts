@@ -94,6 +94,34 @@ const withoutTrailingSlash = (url: URL) => `${url.origin}${url.pathname}`.replac
 const transient = (status: number) => status === 429 || status >= 500;
 
 /**
+ * Whether a provider's answer to the template query shows our filing with separate instances.
+ * The spec lets it send nothing, only the version, or the whole template. The whole template
+ * shows the flag itself, and one without the flag shows it is missing, whatever its version. An
+ * answer that is only `{ "version": n }` shows it when n is at least the version filed with the
+ * flag. Nothing, or anything that is not JSON, shows nothing.
+ */
+function showsInstanceFiling(text: string, filedVersion: number | undefined): boolean {
+  let body: unknown;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    return false;
+  }
+  if (!isObject(body)) return false;
+  if (body.multiInstance === true) return true;
+  const onlyAVersion = Object.keys(body).length === 1 && "version" in body;
+  return (
+    onlyAVersion &&
+    filedVersion !== undefined &&
+    Number.isSafeInteger(filedVersion) &&
+    filedVersion >= 1 &&
+    typeof body.version === "number" &&
+    Number.isSafeInteger(body.version) &&
+    body.version >= filedVersion
+  );
+}
+
+/**
  * The provider that can add `serviceId` to `zone`, or why none can. `budgetMs` covers all three
  * questions together; a lookup still running when it ends is left behind.
  */
@@ -105,10 +133,20 @@ export async function discoverConnect(
     providerId: string;
     serviceId: string;
     budgetMs: number;
-    /** Require verified provider support and template JSON with `multiInstance: true`.
-     *  Callers that later remove one application through the async API must pass a
-     *  stable instanceId for each independent service application. */
+    /** Require a provider verified to keep separate applications apart, and proof in its copy of
+     *  the template: its answer to the template query is the template with `multiInstance: true`,
+     *  or only a `version` of at least `instanceTemplateVersion`. An application made through the
+     *  sync link has no instanceId, and an async revert without one removes every instance of the
+     *  template, so a caller that removes one application through the async API must pass the same
+     *  stable instanceId at the async apply and at the revert. */
     requireMultiInstance?: boolean;
+    /** The version of the template you filed with `multiInstance: true`, a whole number from 1.
+     *  The spec lets a provider answer the template query with no body, only the version, or the
+     *  whole template, and Cloudflare sends only the version. An answer that is only a version at
+     *  or above this one is taken as the provider's copy of that filing, so keep the flag in every
+     *  later version: a bare version cannot show that a later filing dropped it. Left out: only the
+     *  template itself counts. */
+    instanceTemplateVersion?: number;
     providers?: readonly ConnectProvider[];
   },
 ): Promise<Discovery> {
@@ -177,15 +215,11 @@ async function ask(
   );
   if (!template) return UNANSWERED;
   if (template.status !== 200) return transient(template.status) ? UNANSWERED : NOT_OFFERED;
-  if (args.requireMultiInstance) {
-    let templateBody: unknown;
-    try {
-      templateBody = JSON.parse(template.text);
-    } catch {
-      return NOT_OFFERED;
-    }
-    if (!isObject(templateBody) || templateBody.multiInstance !== true) return NOT_OFFERED;
-  }
+  if (
+    args.requireMultiInstance &&
+    !showsInstanceFiling(template.text, args.instanceTemplateVersion)
+  )
+    return NOT_OFFERED;
   return {
     found: true,
     id: provider.id,

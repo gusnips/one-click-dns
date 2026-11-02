@@ -161,7 +161,7 @@ To file a template: test it in the [online editor](https://domainconnect.paulone
 
 ### Keep separate SPF services
 
-Two links for the same template can replace each other's records, even if you check DNS before issuing either link. For SPF, that can remove another service's permission to send.
+At a DNS provider that keeps track of applied templates, a second link for the same template can replace the first one's records, even if you check DNS before issuing either link. For SPF, that can remove another service's permission to send.
 
 When one template serves several sending services, opt in to separate instances:
 
@@ -169,7 +169,7 @@ When one template serves several sending services, opt in to separate instances:
 const template = spfTemplate(identity, { multiInstance: true, version: 2 });
 ```
 
-File the updated template and wait for the DNS provider to switch it on. Before signing a link, require that provider's copy to advertise the flag:
+File the updated template and wait for the DNS provider to switch it on. Before signing a link, require that provider's copy to show your filing:
 
 ```ts
 import { discoverConnect, systemDnsLookups } from "@gusnips/one-click-dns/server";
@@ -182,15 +182,16 @@ const discovery = await discoverConnect(
     serviceId: "spf",
     budgetMs: 2000,
     requireMultiInstance: true,
+    instanceTemplateVersion: 2,
   },
 );
 ```
 
-This check needs both a provider entry with `supportsMultiInstance: true` and the literal template flag `multiInstance: true`. Missing or false support returns `not_offered`. The template check reads the same size-limited response and makes no extra request. Other discovery calls keep their current behavior.
+This check needs a provider entry with `supportsMultiInstance: true`, and a template answer that shows your filing: the template with `multiInstance: true`, or an answer that is only `{ "version": n }` with `n` at or above `instanceTemplateVersion` (the version you filed with the flag). The spec lets a provider answer the template query with no body, with only the version, or with the whole template, and Cloudflare sends only the version. A whole template without the flag shows the flag is missing, whatever its version, and an empty answer shows nothing. Keep `multiInstance: true` in every later version, because a bare version cannot show that a later filing dropped it. Missing support returns `not_offered`. The template check reads the same size-limited response and makes no extra request. Other discovery calls keep their current behavior.
 
-No built-in provider has verified instance support yet. [Cloudflare says it ignores this flag](https://developers.cloudflare.com/dns/reference/domain-connect/#template-definition); the other providers are unverified. Requiring instances therefore returns `not_offered` for each built-in provider. Keep a manual fallback. For a custom `providers` list, set `supportsMultiInstance: true` only after verifying that provider's behavior, not just its template JSON.
+No built-in provider has verified instance support yet. Cloudflare [ignores the flag and documents merging SPF into the existing record](https://developers.cloudflare.com/dns/reference/domain-connect/#template-definition). The spec says the flag has no effect at a provider that keeps no template state, so a second apply there may keep the first include, but that is untested, and Cloudflare stays unverified like the others. Requiring instances therefore returns `not_offered` for each built-in provider. Keep a manual fallback. For a custom `providers` list, set `supportsMultiInstance: true` only after a live test shows that a second apply of the same template keeps the first one's records, not just from its template JSON.
 
-Only sign when `discovery.found` is true. The signed sync link carries the template flag; the spec defines `instanceId` for the async apply and revert, not for the sync parameters. If you later remove one application through the async API, pass a stable `instanceId` derived from the full sending domain and the service's SPF include: the same pair reuses the same id, and different domains or services use different ids. The package does not choose that id for you. The flag does not check SPF's lookup limit or make a redirect back to your app proof that DNS changed.
+Only sign when `discovery.found` is true. The sync link only names the template. The provider reads `multiInstance` from its own copy, so the flag must be in the template you filed. The sync apply has no `instanceId`; the spec defines it only for the async apply and revert. An application made through the sync link therefore has no id, and an async revert without one removes every instance of the template. If you later remove one application through the async API, pass the same stable `instanceId` at the async apply and at the revert, derived from the full sending domain and the service's SPF include: the same pair reuses the same id, and different domains or services use different ids. The package does not choose that id for you. The flag does not check SPF's lookup limit or make a redirect back to your app proof that DNS changed.
 
 ## Steps for the host
 
