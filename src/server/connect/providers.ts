@@ -10,7 +10,7 @@
 // public-address guard) so any host that answers `_domainconnect` can be asked without a release.
 // A provider joins when its value has been read from DNS and its settings from its API. The ones
 // the Domain Connect list names live and that are not here yet (IONOS, NameSilo, Plesk,
-// WordPress.com, Domain Chief, Glauca Digital) join the same way.
+// WordPress.com, Domain Chief) join the same way.
 export interface ConnectProvider {
   /** Our id for the provider. */
   id: string;
@@ -56,6 +56,14 @@ export const CONNECT_PROVIDERS: readonly ConnectProvider[] = [
     txt: "domainconnect.simply.com",
     api: "https://domainconnect.simply.com",
     syncHost: "domainconnect.simply.com",
+  },
+  // `_domainconnect.glauca.digital` read 2026-11-07: a CNAME to
+  // `domain-connect.as207960.ltd.uk`. Settings use a separate `/api` path for templates.
+  {
+    id: "glauca",
+    txt: "dns.glauca.digital/connect",
+    api: "https://dns.glauca.digital/connect/api",
+    syncHost: "dns.glauca.digital",
   },
   // Settings read 2026-10-29 from domainconnect.api.godaddy.com (`urlSyncUX`
   // https://dcc.godaddy.com/manage). The TXT value on a customer's zone is not read yet: if it

@@ -110,13 +110,13 @@ const plan = await planConnection(
 
 When the host has your template, `plan.methods` starts with a `domain-connect` method. Sending the person back to `redirect_uri` proves nothing. Check the DNS yourself before you mark the domain done.
 
-Only these providers are asked, because their `_domainconnect` value and settings were read from DNS: Cloudflare, Vercel, Simply.com and GoDaddy. A name in a customer's DNS is never fetched. More providers join the same way, one value at a time.
+Only these providers are asked, because their `_domainconnect` value and settings were read from DNS: Cloudflare, Vercel, Simply.com, Glauca Digital and GoDaddy. A name in a customer's DNS is never fetched. More providers join the same way, one value at a time.
 
 A provider listed here is one the package can talk to. It is not a promise that the provider will switch your template on. GoDaddy, for one, told us on 2026-10-29 that it is not accepting new templates for direct onboarding and gave no date. Ask each provider, and use `templateCoverage` to see who said yes. Where there is no link, `plan.methods` still ends with the steps for that host.
 
 ### Which providers have switched your template on
 
-A merged template is not a template a provider uses. Each provider turns templates on by hand, and the only way to know is to ask it. `templateCoverage` asks every provider in the list once:
+A merged template is not a template a provider uses. Each provider decides which templates it uses. Some pull updates automatically from GitHub. Check the provider to see whether yours is available. `templateCoverage` asks every provider in the list once:
 
 ```ts
 import { templateCoverage } from "@gusnips/one-click-dns/server";
