@@ -48,6 +48,7 @@ describe("templateCoverage", () => {
       godaddy: "unanswered",
       vercel: "unanswered",
       simply: "unanswered",
+      glauca: "unanswered",
     });
   });
 });

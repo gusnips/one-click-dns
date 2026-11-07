@@ -231,6 +231,31 @@ describe("discoverConnect", () => {
     expect(asked[1]).toBe(`${api}/v2/domainTemplates/providers/${PROVIDER_ID}/services/dmarc`);
   });
 
+  it("finds Glauca using its separate settings and template API paths", async () => {
+    // Addresses observed from Glauca's DNS and settings on 2026-11-07.
+    const txt = "dns.glauca.digital/connect";
+    const api = "https://dns.glauca.digital/connect/api";
+    const settings = `https://${txt}/v2/acme.io/settings`;
+    const template = `${api}/v2/domainTemplates/providers/${PROVIDER_ID}/services/dmarc`;
+    const { fetch, asked } = fakeProvider({
+      [settings]: json({
+        providerId: "glauca.digital",
+        providerName: "AS207960 Cyfyngedig",
+        providerDisplayName: "Glauca Digital",
+        urlSyncUX: "https://dns.glauca.digital/connect/sync",
+        urlAPI: api,
+      }),
+      [template]: json({ version: 1 }),
+    });
+    expect(await ask([txt], fetch)).toEqual({
+      found: true,
+      id: "glauca",
+      provider: "Glauca Digital",
+      syncUrl: "https://dns.glauca.digital/connect/sync",
+    });
+    expect(asked).toEqual([settings, template]);
+  });
+
   it("never calls a host a customer's TXT names unless the whole value is on the list", async () => {
     for (const value of [
       "evil.example/client/v4/dns/domainconnect",
