@@ -210,7 +210,10 @@ A name server pattern is in the list only when the host documents it or it was s
 
 ```bash
 bun run lint
+bun run format:check
 bun run typecheck
 bun run build
 bun test src/path/to/file.test.ts
 ```
+
+The repo uses TypeScript 7, oxlint and oxfmt. `bun run build` uses tsdown.

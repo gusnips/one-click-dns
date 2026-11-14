@@ -45,10 +45,11 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsup src/index.ts src/server/index.ts src/writers/index.ts --format cjs,esm --dts --clean",
+    "build": "tsdown",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src scripts",
-    "format": "prettier --write .",
+    "lint": "oxlint src scripts",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
     "test": "bun test",
     "live": "bun scripts/live-check.ts",
     "prepublishOnly": "bun run lint && bun run typecheck && bun run build"
@@ -83,14 +84,13 @@
     "@gusnips/server": ">=0.14.3"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
+    "@gusnips/oxlint": "^0.2.0",
     "@gusnips/server": "^0.15.0",
     "@types/bun": "^1.4.2",
     "@types/node": "^26.6.5",
-    "eslint": "^10.12.0",
-    "prettier": "^3.9.10",
-    "tsup": "^8.5.1",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.71.1"
+    "oxfmt": "0.78.0",
+    "oxlint": "1.93.0",
+    "tsdown": "^0.23.7",
+    "typescript": "^7.0.2"
   }
 }
