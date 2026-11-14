@@ -47,7 +47,7 @@
   "scripts": {
     "build": "tsdown",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src scripts",
+    "lint": "oxlint src scripts",
     "format": "prettier --write .",
     "test": "bun test",
     "live": "bun scripts/live-check.ts",
@@ -83,14 +83,13 @@
     "@gusnips/server": ">=0.14.3"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
+    "@gusnips/oxlint": "^0.2.0",
     "@gusnips/server": "^0.15.0",
     "@types/bun": "^1.4.2",
     "@types/node": "^26.6.5",
-    "eslint": "^10.12.0",
+    "oxlint": "1.93.0",
     "prettier": "^3.9.10",
     "tsdown": "^0.23.7",
-    "typescript": "^7.0.2",
-    "typescript-eslint": "^8.71.1"
+    "typescript": "^7.0.2"
   }
 }
