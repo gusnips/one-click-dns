@@ -48,7 +48,8 @@
     "build": "tsdown",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint src scripts",
-    "format": "prettier --write .",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
     "test": "bun test",
     "live": "bun scripts/live-check.ts",
     "prepublishOnly": "bun run lint && bun run typecheck && bun run build"
@@ -87,8 +88,8 @@
     "@gusnips/server": "^0.15.0",
     "@types/bun": "^1.4.2",
     "@types/node": "^26.6.5",
+    "oxfmt": "0.78.0",
     "oxlint": "1.93.0",
-    "prettier": "^3.9.10",
     "tsdown": "^0.23.7",
     "typescript": "^7.0.2"
   }
